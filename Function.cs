@@ -15,12 +15,13 @@ namespace openai
 {
     public static class Function
     {
+        static OpenAIAPI api = new OpenAIAPI(Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
+
         [FunctionName("conversation")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            OpenAIAPI api = new OpenAIAPI(Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
             string input = req.Query["input"];
             var chat = api.Chat.CreateConversation();
             chat.AppendUserInput(input);
