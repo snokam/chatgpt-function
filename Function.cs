@@ -19,7 +19,7 @@ namespace openai
 
         [FunctionName("conversation")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "v1.0/conversation")] HttpRequest req,
             ILogger log)
         {
             string input = req.Query["input"];
