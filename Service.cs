@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Http;
 using OpenAI_API.Chat;
 using OpenAI_API.Models;
-using System.IO;
 using System.Threading.Tasks;
 using OpenAI_API;
+using System.Reflection.Metadata;
 
 namespace openai
 {
@@ -18,17 +18,20 @@ namespace openai
 
         public static async Task streamAnswer(HttpResponse response, ChatMessage[] chatMessages)
         {
-            response.StatusCode = 200;
-            response.ContentType = "text/event-stream";
+            response.Headers.Add("Content-Type", "text/event-stream; charset=utf-8");
+            response.Headers.Add("Cache-Control", "no-cache");
+            response.Headers.Add("Keep-Alive", "timeout=250, max=10000");
+
             ChatRequest chatRequest = getChatRequest(chatMessages);
 
             await foreach (ChatResult res in api.Chat.StreamChatEnumerableAsync(chatRequest)) {
                 if (res?.Choices[0]?.Delta?.Content != null) {
-                    await response.WriteAsync(res.Choices[0].Delta.Content);
+                    await response.WriteAsync($"data: {res.Choices[0].Delta.Content.Replace("\n", "<br/>")}\n\n");
+                    await response.Body.FlushAsync();
                 }
             }
 
-            await response.Body.FlushAsync();
+            await response.WriteAsync($"data: \n\n");
         }
 
         public static ChatRequest getChatRequest(ChatMessage[] chatMessages) {
