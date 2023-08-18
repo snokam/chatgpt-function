@@ -33,9 +33,12 @@ public static class SanityService
 				  List<SanityCustomerContract> customerContracts = employee.CustomerContracts != null ? employee.CustomerContracts.Select(contact => contact.Value).ToList() : new List<SanityCustomerContract>();
 				  SanityCustomerContract activeContract = customerContracts?.Find(contract => contract?.StartDate <= currentDate && contract?.EndDate >= currentDate);
 				  Boolean hasUpcomingProject = customerContracts.Where(contact => contact?.StartDate > activeContract?.EndDate).ToList().Count() > 0;
-				  Console.WriteLine(employee?.Name);
-				  Console.WriteLine(activeContract?.EndDate);
 				  return (!hasUpcomingProject && (activeContract == null || currentDate >= activeContract.EndDate.AddDays(-60)));
+			  })
+			  .Select(employee => new SanityEmployee{
+				  Name = employee.Name,
+				  Email = employee.Email,
+				  About = employee.About
 			  })
 			 .ToList();
 

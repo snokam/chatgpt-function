@@ -4,7 +4,6 @@ using OpenAI_API.Chat;
 using OpenAI_API.Models;
 using System.Threading.Tasks;
 using OpenAI_API;
-using System.Reflection.Metadata;
 
 namespace openai
 {

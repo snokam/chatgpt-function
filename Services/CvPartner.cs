@@ -16,7 +16,14 @@ namespace openai
             client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Token token=\"{token}\"");
         }
 
-        public static CvPartnerUser? GetUser(string? email, List<CvPartnerUser> users) {
+		public static async Task<List<CvPartnerUser>> GetEmployees()
+		{
+			HttpResponseMessage response = await client.GetAsync($"{baseUrl}/v1/users");
+			List<CvPartnerUser> users = await response.Content.ReadAsAsync<List<CvPartnerUser>>();
+			return users;
+		}
+
+		public static CvPartnerUser? GetUser(string? email, List<CvPartnerUser> users) {
             return users.Find(u => u.email == email);
         }
 
