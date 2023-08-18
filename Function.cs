@@ -90,7 +90,7 @@ namespace openai
 			SlackEvent slackEvent = JsonConvert.DeserializeObject<SlackEvent>(body);
 			dynamic rawSlackEvent = JsonConvert.DeserializeObject<dynamic>(body);
 
-			Console.WriteLine("Analysing message ...");
+			log.LogDebug("Analysing message ...");
 			if (slackEvent.@event?.files?.Count > 0 && !scannedEvents.Contains(slackEvent.@event?.event_ts)) {
 				scannedEvents.Add(slackEvent.@event.event_ts);
 
@@ -98,7 +98,7 @@ namespace openai
 					new ChatMessage(ChatMessageRole.User, "Kan du oppsummere denne eposten? " + JsonConvert.SerializeObject(rawSlackEvent))
 				};
 
-				Console.WriteLine("Creating summary ...");
+				log.LogDebug("Creating summary ...");
 				var summaryResult = await ChatGpt.getAnswer(conversation.ToArray());
 				conversation.Add(new ChatMessage(ChatMessageRole.System, summaryResult.Choices[0].Message.Content));
 
@@ -113,14 +113,13 @@ namespace openai
 				slackSummaryMessage.ThreadId = slackEvent.@event.event_ts;
 				slackClient.Post(slackSummaryMessage);
 
-				Console.WriteLine("Getting ChatGPT to filter candidates...");
+				log.LogDebug("Getting ChatGPT to filter candidates...");
 				List<SanityEmployee> employeesWithoutProject = await SanityService.GetEmployeesWithoutProject();
 
 				conversation.Add(new ChatMessage(ChatMessageRole.User, "Denne meldingen må KUN svares på med JSON som ser slik ut: {\"reason\": \"Utfyllende forklaring på hvorfor du valgte disse kandidatene, dersom du valgte noen\", \"candidates\": \"Eposten til de filtrerte kandidatene, dersom du valgte noen. Ellers returner en tom liste\"}. Kan du filtrere hvilke konsulenter som passer godt til oppdraget, dersom det finnes noen? Dette er kandidatene: " + JsonConvert.SerializeObject(employeesWithoutProject)));
 				var filterResult = await ChatGpt.getAnswer(conversation.ToArray());
-				Console.WriteLine(JsonConvert.SerializeObject(filterResult));
 				EmployeesFilterDto chatGptFilter = JsonConvert.DeserializeObject<EmployeesFilterDto>(filterResult.Choices[0].Message.Content);
-				Console.WriteLine(JsonConvert.SerializeObject(chatGptFilter));
+				log.LogDebug(JsonConvert.SerializeObject(chatGptFilter));
 				List<SanityEmployee> filteredEmployees = employeesWithoutProject.FindAll(employee => chatGptFilter.candidates.Contains(employee?.Email));
 
 				var slackFilterMessage = new SlackMessage
@@ -135,7 +134,7 @@ namespace openai
 				slackClient.Post(slackFilterMessage);
 
 				if(filteredEmployees.Count > 0){
-					Console.WriteLine("Fetching CVs for candidates:");
+					log.LogDebug("Fetching CVs for candidates:");
 					List<CvPartnerUser> cvPartnerUsers = await CvPartnerService.GetEmployees();
 					List<dynamic> relevantCvs = new List<dynamic>();
 					foreach (var employee in filteredEmployees)
@@ -143,12 +142,10 @@ namespace openai
 						relevantCvs.Add(await CvPartnerService.GetCv(employee.Email, cvPartnerUsers));
 					}
 
-					Console.WriteLine("Writing pitch ...");
+					log.LogDebug("Writing pitch ...");
 					conversation.Add(new ChatMessage(ChatMessageRole.User, "Nå kan du fortsette å skrive vanlig tekst. Kan du skrive en detaljert begrunnelse på hvorfor disse konsulentene passer akkurat til dette oppdraget? " + JsonConvert.SerializeObject(relevantCvs)));
 
-					Console.WriteLine(JsonConvert.SerializeObject(conversation));
 					var pitchResults = await ChatGpt.getAnswer(conversation.ToArray());
-
 					var slackPitchMessage = new SlackMessage
 					{
 						Channel = "#oppdrag",
@@ -163,7 +160,7 @@ namespace openai
 
 				return new OkObjectResult(body);
 			}else{
-				Console.WriteLine("Not relevant, skipping ...");
+				log.LogDebug("Not relevant, skipping ...");
 			}
 			return new NoContentResult();
 		}
