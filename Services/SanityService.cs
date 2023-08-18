@@ -20,22 +20,28 @@ public static class SanityService
 
     private static readonly SanityDataContext context = new(options);
 
-    public static async Task<List<SanityEmployee>> GetEmployeesWithoutActiveCustomerContract()
+    public static async Task<List<SanityEmployee>> GetEmployeesWithoutProject()
 	{
 		DateTime currentDate = DateTime.Today;
 		var employees = await context.DocumentSet<SanityEmployee>()
             .Include(employee => employee.CustomerContracts)
 			.ToListAsync();
 
-        employees = employees
-			 .Where(employee => !employee.Id.Contains("draft"))
-			 .Where(employee => {
-				 SanityReference<SanityCustomerContract?> activeContract = employee.CustomerContracts?.Find(contract => contract?.Value?.StartDate <= currentDate && contract?.Value?.EndDate >= currentDate);
-				 // || (activeContract?.Value != null && employee.CustomerContracts?.Find(contact => contact.Value?.EndDate > activeContract.Value.EndDate) == null);
-				 return activeContract?.Value == null;
-			 }) 
-			.ToList();
+		employees = employees
+			  .Where(employee => !employee.Id.Contains("draft"))
+			  .Where(employee => {
+				  List<SanityCustomerContract> customerContracts = employee.CustomerContracts != null ? employee.CustomerContracts.Select(contact => contact.Value).ToList() : new List<SanityCustomerContract>();
+				  SanityCustomerContract activeContract = customerContracts?.Find(contract => contract?.StartDate <= currentDate && contract?.EndDate >= currentDate);
+				  Boolean hasUpcomingProject = customerContracts.Where(contact => contact?.StartDate > activeContract?.EndDate).ToList().Count() > 0;
+				  return (!hasUpcomingProject && (activeContract == null || currentDate >= activeContract.EndDate.AddDays(-60)));
+			  })
+			  .Select(employee => new SanityEmployee{
+				  Name = employee.Name,
+				  Email = employee.Email,
+				  About = employee.About
+			  })
+			 .ToList();
 
-        return employees;
+		return employees;
     }
 }
