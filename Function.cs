@@ -116,7 +116,7 @@ namespace openai
 				Console.WriteLine("Getting ChatGPT to filter candidates...");
 				List<SanityEmployee> employeesWithoutProject = await SanityService.GetEmployeesWithoutProject();
 
-				conversation.Add(new ChatMessage(ChatMessageRole.User, "I denne meldingen må KUN svare med JSON som ser slik ut: {\"reason\": \"Utfyllende forklaring på hvorfor du valgte disse kandidatene\", \"candidates\": \"Eposten til de filtrerte kandidatene, eventuelt tom liste\"}. Kan du filtrere hvilke konsulenter som passer til oppdraget? Dette er kandidatene: " + JsonConvert.SerializeObject(employeesWithoutProject)));
+				conversation.Add(new ChatMessage(ChatMessageRole.User, "Denne meldingen må KUN svares på med JSON som ser slik ut: {\"reason\": \"Utfyllende forklaring på hvorfor du valgte disse kandidatene, dersom du valgte noen\", \"candidates\": \"Eposten til de filtrerte kandidatene, dersom du valgte noen. Ellers returner en tom liste\"}. Kan du filtrere hvilke konsulenter som passer godt til oppdraget, dersom det finnes noen? Dette er kandidatene: " + JsonConvert.SerializeObject(employeesWithoutProject)));
 				var filterResult = await ChatGpt.getAnswer(conversation.ToArray());
 				Console.WriteLine(JsonConvert.SerializeObject(filterResult));
 				EmployeesFilterDto chatGptFilter = JsonConvert.DeserializeObject<EmployeesFilterDto>(filterResult.Choices[0].Message.Content);
@@ -134,29 +134,32 @@ namespace openai
 				slackFilterMessage.ThreadId = slackEvent.@event.event_ts;
 				slackClient.Post(slackFilterMessage);
 
-				Console.WriteLine("Fetching CVs for candidates:");
-				List<CvPartnerUser> cvPartnerUsers = await CvPartnerService.GetEmployees();
-				List<dynamic> relevantCvs = new List<dynamic>();
-				foreach (var employee in filteredEmployees) {
-					relevantCvs.Add(await CvPartnerService.GetCv(employee.Email, cvPartnerUsers));
+				if(filteredEmployees.Count > 0){
+					Console.WriteLine("Fetching CVs for candidates:");
+					List<CvPartnerUser> cvPartnerUsers = await CvPartnerService.GetEmployees();
+					List<dynamic> relevantCvs = new List<dynamic>();
+					foreach (var employee in filteredEmployees)
+					{
+						relevantCvs.Add(await CvPartnerService.GetCv(employee.Email, cvPartnerUsers));
+					}
+
+					Console.WriteLine("Writing pitch ...");
+					conversation.Add(new ChatMessage(ChatMessageRole.User, "Nå kan du fortsette å skrive vanlig tekst. Kan du skrive en detaljert begrunnelse på hvorfor disse konsulentene passer akkurat til dette oppdraget? " + JsonConvert.SerializeObject(relevantCvs)));
+
+					Console.WriteLine(JsonConvert.SerializeObject(conversation));
+					var pitchResults = await ChatGpt.getAnswer(conversation.ToArray());
+
+					var slackPitchMessage = new SlackMessage
+					{
+						Channel = "#oppdrag",
+						IconEmoji = Emoji.Computer,
+						Username = "snokam",
+						Text = pitchResults.Choices[0].Message.Content
+					};
+
+					slackPitchMessage.ThreadId = slackEvent.@event.event_ts;
+					slackClient.Post(slackPitchMessage);
 				}
-
-				Console.WriteLine("Writing pitch ...");
-				conversation.Add(new ChatMessage(ChatMessageRole.User, "Nå kan du fortsette å skrive vanlig tekst. Kan du skrive hvorfor disse konsulentene passer akkurat til dette oppdraget? " + JsonConvert.SerializeObject(relevantCvs)));
-
-				Console.WriteLine(JsonConvert.SerializeObject(conversation));
-				var pitchResults = await ChatGpt.getAnswer(conversation.ToArray());
-
-				var slackPitchMessage = new SlackMessage
-				{
-					Channel = "#oppdrag",
-					IconEmoji = Emoji.Computer,
-					Username = "snokam",
-					Text = pitchResults.Choices[0].Message.Content
-				};
-
-				slackPitchMessage.ThreadId = slackEvent.@event.event_ts;
-				slackClient.Post(slackPitchMessage);
 
 				return new OkObjectResult(body);
 			}else{
