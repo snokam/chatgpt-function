@@ -112,12 +112,14 @@ namespace openai
 				slackClient.Post(slackSummaryMessage);
 
 				Console.WriteLine("Writing pitch summary ...");
-				List<SanityEmployee> employees = await SanityService.GetEmployeesWithoutActiveCustomerContract();
+				List<SanityEmployee> employeesWithoutProject = await SanityService.GetEmployeesWithoutProject();
 
 				var pitchResults = await ChatGpt.getAnswer(new ChatMessage[] {
 				    new ChatMessage(ChatMessageRole.System, summaryResult.Choices[0].Message.Content),
-				    new ChatMessage(ChatMessageRole.User, "Kan du skrive hvorfor disse konsulentene passer akkurat til dette oppdraget? " + JsonConvert.SerializeObject(JsonConvert.SerializeObject(employees))
+				    new ChatMessage(ChatMessageRole.User, "Kan du skrive hvorfor disse konsulentene passer akkurat til dette oppdraget? " + JsonConvert.SerializeObject(JsonConvert.SerializeObject(employeesWithoutProject))
 	            )});
+
+                List<SanityEmployee> relevantEmployees = new List<SanityEmployee>();
 
 				var slackPitchMessage = new SlackMessage
 				{
@@ -134,8 +136,14 @@ namespace openai
 
 			}
 			return new NoContentResult();
+		}
 
-
+		[FunctionName("test")]
+		public static async Task<IActionResult> test(
+		   [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "v1.0/test")] HttpRequest req,
+		   ILogger log)
+		{
+			return new OkObjectResult(await SanityService.GetEmployeesWithoutProject());
 		}
 	}
 }
