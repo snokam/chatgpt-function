@@ -36,9 +36,8 @@ namespace openai
 
         public static ChatRequest getChatRequest(ChatMessage[] chatMessages) {
             return new ChatRequest() {
-                Model = Model.ChatGPTTurbo,
+                Model = Model.GPT4,
                 Temperature = 0.1,
-                MaxTokens = 200,
                 Messages = chatMessages,
             };
         }
