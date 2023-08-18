@@ -116,7 +116,7 @@ namespace openai
 				log.LogInformation("Getting ChatGPT to filter candidates...");
 				List<SanityEmployee> employeesWithoutProject = await SanityService.GetEmployeesWithoutProject();
 
-				conversation.Add(new ChatMessage(ChatMessageRole.User, "Denne meldingen må KUN svares på med JSON som ser slik ut: {\"reason\": \"Utfyllende forklaring på hvorfor du valgte disse kandidatene, dersom du valgte noen\", \"candidates\": \"Eposten til de filtrerte kandidatene, dersom du valgte noen. Ellers returner en tom liste\"}. Kan du filtrere hvilke konsulenter som passer godt til oppdraget, dersom det finnes noen? Dette er kandidatene: " + JsonConvert.SerializeObject(employeesWithoutProject)));
+				conversation.Add(new ChatMessage(ChatMessageRole.User, "Denne meldingen må KUN svares på med JSON som ser slik ut: {\"reason\": \"Utfyllende forklaring på hvorfor du valgte disse kandidatene, dersom du valgte noen. Inkluder navn i begrunnelsen.\", \"candidates\": \"Eposten til de filtrerte kandidatene, dersom du valgte noen. Ellers returner en tom liste\"}. Kan du filtrere hvilke konsulenter som passer godt til oppdraget, dersom det finnes noen? Dette er kandidatene: " + JsonConvert.SerializeObject(employeesWithoutProject)));
 				var filterResult = await ChatGpt.getAnswer(conversation.ToArray());
 				EmployeesFilterDto chatGptFilter = JsonConvert.DeserializeObject<EmployeesFilterDto>(filterResult.Choices[0].Message.Content);
 				log.LogInformation(JsonConvert.SerializeObject(chatGptFilter));
