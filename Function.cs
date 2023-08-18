@@ -92,7 +92,7 @@ namespace openai
 			Console.WriteLine("Analysing message ...");
             Console.WriteLine(JsonConvert.SerializeObject(rawSlackEvent));
 
-			if (slackEvent.@event.files.Count > 0 && !scannedEvents.Contains(slackEvent.@event.event_ts)) {
+			if (slackEvent.@event?.files?.Count > 0 && !scannedEvents.Contains(slackEvent.@event?.event_ts)) {
 				scannedEvents.Add(slackEvent.@event.event_ts);
 
 				Console.WriteLine("Creating summary ...");
@@ -116,7 +116,7 @@ namespace openai
 
 				var pitchResults = await ChatGpt.getAnswer(new ChatMessage[] {
 				    new ChatMessage(ChatMessageRole.System, summaryResult.Choices[0].Message.Content),
-				    new ChatMessage(ChatMessageRole.User, "Kan du skrive hvorfor disse konsulentene passer til oppdraget: " + JsonConvert.SerializeObject(JsonConvert.SerializeObject(employees))
+				    new ChatMessage(ChatMessageRole.User, "Kan du skrive hvorfor disse konsulentene passer akkurat til dette oppdraget? " + JsonConvert.SerializeObject(JsonConvert.SerializeObject(employees))
 	            )});
 
 				var slackPitchMessage = new SlackMessage
