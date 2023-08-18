@@ -4,7 +4,6 @@ using OpenAI_API.Chat;
 using OpenAI_API.Models;
 using System.Threading.Tasks;
 using OpenAI_API;
-using System.Reflection.Metadata;
 
 namespace openai
 {
@@ -36,9 +35,8 @@ namespace openai
 
         public static ChatRequest getChatRequest(ChatMessage[] chatMessages) {
             return new ChatRequest() {
-                Model = Model.ChatGPTTurbo,
+                Model = Model.GPT4,
                 Temperature = 0.1,
-                MaxTokens = 200,
                 Messages = chatMessages,
             };
         }
